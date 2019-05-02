@@ -1,0 +1,126 @@
+﻿@model CustomersDetails
+@{
+    ViewData["Title"] = "Home Page";
+}
+
+<div class="row" id="content">
+    <div class="col-lg-6">
+        <h3>All Customers</h3>
+        <ul id="Customer-list"></ul>
+        <button class="btn btn-sm btn-default" id="new">Add New</button>
+    </div>
+    <div class="col-lg-6">
+        <div id="details"></div>
+        <div id="form">
+            <form class="form-horizontal">
+                <input type="hidden" asp-for="_id" />
+                <div class="form-group">
+                    <label for="CustomerName">Customers Name</label>
+                    <input type="text" asp-for="_customersName" class="form-control input-sm" />
+                </div>
+                <div class="form-group">
+                    <label for="CustomerPhoneNumber">Customer Phone Number</label>
+                    <input type="text" asp-for="_customersPhoneNumber" class="form-control input-sm" />
+                </div>
+                <div class="form-group">
+                    <button class="btn btn-primary btn-sm" id="save">Submit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section scripts{
+    <script type="text/javascript">
+    $(function () {
+        var loadCustomersDetails = function () {
+            $('#_customersDetails-list').empty();
+            $.get('/api/_customersDetails').done(function (CustomersDetails) {
+                $.each(CustomersDetails, function (i, _customersDetails) {
+                    var item = `<li>
+                            <span class="entry">
+                                <strong>${_customersDetails.customersname} ${_customersDetails.customersphonenumber}</strong>
+                                </span>
+                                <span class ="details" data-id="${_customersDetails.id}">Details</span> |
+                                <span class ="edit"  data-id="${_customersDetails.id}">Edit</span> |
+                                <span class ="delete"  data-id="${_customersDetails.id}">Delete</span>
+                            </li>`;
+                    $('#_customersDetails-list').append(item);
+                });
+            });
+        }
+
+        var showForm = function () {
+            $(':input').val('');
+            $('#details').empty();
+            $('#form').show();
+        }
+
+        var clearForm = function () {
+            $('#details').empty();
+            $(':input').val('');
+            $('#form').hide();
+        }
+
+        $('#new').on('click', showForm);
+
+        clearForm();
+        loadCustomersDetails();
+
+        $('#_customersDetails-list').on('click', '.edit, .details', function () {
+            var cmd = $(this);
+            $.get(`/api/_customersDetails/${cmd.data('id')}`).done(function (_customersDetails) {
+                if (cmd.hasClass('details')) {
+                    clearForm()
+                    $('#details').empty().append(
+                        `<h3>Details</h3>
+                    <strong>${_customersDetails.customersname} ${_customersDetails.customersphonenumber}</strong><br>`
+                    );
+                } else {
+                    showForm();
+                    $('#_id').val(_customersDetails.id);
+                    $('#_customersName').val(_customersDetails.customersname);
+                    $('#_customersPhoneNumber').val(_customersDetails.customersphonenumber);
+                }
+            });
+        });
+
+        $('#save').on('click', function (e) {
+            e.preventDefault();
+
+            var url = '/api/_customersDetails/';
+            var method = 'post';
+            if ($('#_id').val() !== '') {
+                url += $('#_id').val();
+                method = 'put';
+            }
+            var _customersDetails = {};
+            $.each($(this).closest('form').serializeArray(), function () {
+                if (this.name !== '_id' || (this.name === '_id' && this.value !== '')) {
+                    _customersDetails[this.name] = this.value || '';
+                }
+            });
+
+            $.ajax({
+                type: method,
+                url: url,
+                data: JSON.stringify(_customersDetails),
+                contentType: 'application/json'
+            }).done(function () {
+                clearForm();
+                loadCustomersDetails();
+            });
+        });
+
+        $('#_customersDetails-list').on('click', '.delete', function () {
+            $.ajax({
+                type: 'delete',
+                url: '/api/_customersDetails/' + $(this).data('id'),
+            }).done(function () {
+                clearForm();
+                loadCustomersDetails();
+            });
+        });
+    });
+    </script>
+}
